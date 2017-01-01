@@ -740,6 +740,19 @@ pyi_utils_set_environment(const ARCHIVE_STATUS *status)
     return rc;
 }
 
+int
+set_systemd_env(pid_t pid)
+{
+    #define ULONG_STRING_SIZE (sizeof (unsigned long) * CHAR_BIT / 3 + 2)
+    const char * env_var = "LISTEN_PID";
+    char pid_str[ULONG_STRING_SIZE];
+    snprintf(pid_str, ULONG_STRING_SIZE, "%ld", (unsigned long)pid);
+    if(pyi_getenv(env_var) != NULL) {
+        return pyi_setenv(env_var, pid_str);
+    }
+    return 0;
+}
+
 /* Remember child process id. It allows sending a signal to child process.
  * Frozen application always runs in a child process. Parent process is used
  * to setup environment for child process and clean the environment when
@@ -789,6 +802,7 @@ pyi_utils_create_child(const char *thisfile, const int argc, char *const argv[])
     /* Child code. */
     if (pid == 0) {
         /* Replace process by starting a new application. */
+        set_systemd_env(getpid());
         execvp(thisfile, argv_pyi);
     }
     /* Parent code. */
